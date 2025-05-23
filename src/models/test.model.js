@@ -3,8 +3,8 @@ import mongoose from "mongoose";
 const testSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User",      // Referencia al modelo de Usuario
-    required: true,   // Es obligatorio asociar un usuario
+    ref: "User",
+    required: true,
   },
   topic: {
     type: String,
@@ -14,13 +14,23 @@ const testSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  questions: [
-    {
-      type: String, // Puedes almacenar el texto o el ID de la pregunta
-    }
-  ],
-}, {
-  timestamps: true,
+  questions: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Question"
+  }],
+  source: {
+    type: String,
+    enum: ["manual", "pdf"],
+    default: "pdf"
+  },
+  generatedFrom: { // Nuevo campo
+    type: String,
+    required: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
 });
 
 export default mongoose.model("Test", testSchema);

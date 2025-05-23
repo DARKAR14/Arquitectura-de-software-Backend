@@ -31,7 +31,14 @@ export const login = async (req, res) => {
     }
 
     // Generar el token
-    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: "1d" });
+    const token = jwt.sign(
+  { 
+    id: user._id.toString(), // Asegúrate de convertir a String
+    email: user.email 
+  }, 
+  JWT_SECRET, 
+  { expiresIn: "1d" }
+);
 
     // Guardar el token en una cookie HTTP-only
     res.cookie("authToken", token, {
@@ -44,6 +51,7 @@ export const login = async (req, res) => {
     // Devolver un mensaje y datos básicos del usuario
     return res.json({
       message: "Inicio de sesión exitoso",
+      token,
       user: {
         id: user._id,
         username: user.username,

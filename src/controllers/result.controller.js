@@ -1,71 +1,38 @@
-// src/controllers/result.controller.js
 import Result from "../models/result.model.js";
 import Test from "../models/test.model.js";
 
-/**
- * POST /results
- * Body esperado:
- * {
- *   testId: string,
- *   answers: [
- *     { questionId: string, selectedOption: string },
- *     ...
- *   ]
- * }
- */
-export const saveResult = async (req, res) => {
+export const getTestResults = async (req, res) => {
   try {
-    const userId = req.user.id;              // Inyectado por verifyToken
-    const { testId, answers } = req.body;
+    const result = await Result.findById(req.params.id)
+      .populate({
+        path: 'test',
+        populate: {
+          path: 'questions',
+          select: 'text correctAnswer'
+        }
+      });
 
-    // Validaciones básicas
-    if (!testId || !Array.isArray(answers)) {
-      return res.status(400).json({ error: "testId y answers son obligatorios" });
+    if (!result) return res.status(404).json({ error: "Resultado no encontrado" });
+    if (result.user.toString() !== req.user.id) {
+      return res.status(403).json({ error: "No autorizado" });
     }
 
-    // Traer el test y asegurarnos que pertenece al usuario
-    const test = await Test.findOne({ _id: testId, user: userId });
-    if (!test) {
-      return res.status(404).json({ error: "Test no encontrado o sin permisos" });
-    }
+    const detailedResults = result.answers.map(ans => ({
+      question: ans.question.text,
+      correctAnswer: ans.question.correctAnswer,
+      userAnswer: ans.selectedOption,
+      isCorrect: ans.isCorrect
+    }));
 
-    // Calcular puntuación y detalle
-    let correctCount = 0;
-    const details = answers.map(({ questionId, selectedOption }) => {
-      const question = test.questions.id(questionId);
-      const isCorrect = question?.correctAnswer === selectedOption;
-      if (isCorrect) correctCount++;
-      return {
-        questionId,
-        selectedOption,
-        correctAnswer: question?.correctAnswer || null,
-        isCorrect,
-      };
+    res.json({
+      score: result.score,
+      total: result.total,
+      percentage: ((result.score / result.total) * 100).toFixed(2) + "%",
+      details: detailedResults
     });
 
-    // Guardar resultado
-    const newResult = new Result({
-      user: userId,
-      test: testId,
-      score: correctCount,
-      total: test.questions.length,
-      details,
-      date: new Date(),
-    });
-    await newResult.save();
-
-    // Responder con el resumen de la calificación
-    return res.status(201).json({
-      message: "Resultado guardado exitosamente",
-      result: {
-        testId,
-        score: correctCount,
-        total: test.questions.length,
-        details,
-      },
-    });
   } catch (error) {
-    console.error("Error guardando resultado:", error);
-    return res.status(500).json({ error: "Error interno guardando resultado" });
+    console.error("Error en getTestResults:", error);
+    res.status(500).json({ error: "Error obteniendo resultados" });
   }
 };

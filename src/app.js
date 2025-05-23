@@ -18,13 +18,13 @@ import swaggerDocument from "./swagger.config.js";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Conectar a la base de datos
+
 connectDB();
 
 // Middlewares
 app.use(cors({
   origin: (origin, callback) => {
-    // Permite todas las peticiones, incluso las que no tienen "origin" (como las de apps nativas o curl)
+    
     callback(null, true);
   },
   credentials: true,
@@ -44,9 +44,5 @@ app.use("/api/tests", testRoutes);
 app.use("/api/questions", questionRoutes);
 app.use("/api/results", resultRoutes);
 
-// Iniciar el servidor
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-});
 
-export default app; // (Opcional) Para pruebas
+export default app; 

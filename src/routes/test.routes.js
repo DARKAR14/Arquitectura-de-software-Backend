@@ -1,10 +1,23 @@
 // src/routes/test.routes.js
 import { Router } from "express";
 import * as testController from "../controllers/test.controller.js";
+import { verifyToken } from "../middlewares/auth.middleware.js";
 import multer from "multer";
 
 const router = Router();
-const upload = multer(); // guarda en memoria
+const upload = multer({
+  storage: multer.memoryStorage(), // Almacena en memoria
+  limits: {
+    fileSize: 5 * 1024 * 1024 // Límite de 5MB
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Solo se permiten archivos PDF'), false);
+    }
+  }
+});
 
 /**
  * @swagger
@@ -31,14 +44,35 @@ const upload = multer(); // guarda en memoria
  *               difficulty:
  *                 type: string
  *                 description: Dificultad del test (p.ej. fácil, medio, difícil)
- *     responses:
- *       201:
- *         description: Test generado exitosamente
- *       400:
- *         description: PDF no proporcionado o formato inválido
- *       500:
- *         description: Error interno generando el test
+ *     // En el comentario Swagger de la ruta
+*     responses:
+*       201:
+*         description: Test generado exitosamente
+*         content:
+*           application/json:
+*             schema:
+*               type: object
+*               properties:
+*                 success:
+*                   type: boolean
+*                 test:
+*                   $ref: '#/components/schemas/Test'
+*                 pdfMeta:
+*                   type: object
+*                   properties:
+*                     originalName:
+*                       type: string
+*                     size:
+*                       type: number
+*                     pages:
+*                       type: number
  */
-router.post("/", upload.single("file"), testController.createTest);
+
+router.post("/", verifyToken, upload.single("file"), testController.createTest);
+
+// Obtener test por ID (sin respuestas correctas)
+router.get("/:id", verifyToken, testController.getTest);
+
+router.get("/", verifyToken, testController.getUserTests);
 
 export default router;

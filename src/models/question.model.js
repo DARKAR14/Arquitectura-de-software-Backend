@@ -1,15 +1,15 @@
 import mongoose from "mongoose";
 
-// Sub-esquema para las opciones de la pregunta
 const optionSchema = new mongoose.Schema({
+  letter: { // Cambiar de 'text' a 'letter' para coincidir con A/B/C/D
+    type: String,
+    enum: ["A", "B", "C", "D"],
+    required: true
+  },
   text: {
     type: String,
     required: true,
-  },
-  isCorrect: {
-    type: Boolean,
-    default: false,
-  },
+  }
 });
 
 const questionSchema = new mongoose.Schema({
@@ -22,7 +22,17 @@ const questionSchema = new mongoose.Schema({
     enum: ["multiple-choice", "true-false", "short-answer"],
     default: "multiple-choice",
   },
-  options: [optionSchema], // Array de opciones para preguntas de selección múltiple
+  options: [optionSchema],
+  correctAnswer: { // Mover la respuesta correcta aquí
+    type: String,
+    enum: ["A", "B", "C", "D"],
+    required: true
+  },
+  test: { // Referencia al test padre
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Test",
+    required: true
+  }
 }, {
   timestamps: true,
 });

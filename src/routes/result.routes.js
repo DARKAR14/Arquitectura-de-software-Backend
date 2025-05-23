@@ -1,5 +1,5 @@
 import { Router } from "express";
-import * as resultController from "../controllers/result.controller.js";
+import { getTestResults } from "../controllers/result.controller.js";
 import { verifyToken } from "../middlewares/auth.middleware.js";
 
 const router = Router();
@@ -54,6 +54,6 @@ const router = Router();
  *       401:
  *         description: No autorizado
  */
-router.post("/", verifyToken, resultController.saveResult);
+router.get("/:id", verifyToken, getTestResults);
 
 export default router;
