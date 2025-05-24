@@ -17,41 +17,36 @@ const generateTestTitle = (filename) => {
 };
 // Función para parsear la respuesta de la IA
 const parseAIQuestions = (aiOutput) => {
-  const questionBlocks = aiOutput.split(/(?=\d+\.)/g);
+  const questionBlocks = aiOutput.split(/(?:\d+[.)]|Pregunta|PREGUNTA)/gi); // Más flexible
   const parsedQuestions = [];
 
-  for (const block of questionBlocks) {
+  questionBlocks.forEach((block) => {
     const lines = block.split('\n').filter(line => line.trim() !== '');
-    if (lines.length < 6) continue;
+    if (lines.length < 6) return;
 
-    const questionData = {
-      text: lines[0].replace(/^\d+\.\s*/, '').trim(),
-      type: "multiple-choice",
-      options: [],
-      correctAnswer: ''
-    };
+    // Extraer texto de pregunta (permite múltiples líneas)
+    const questionText = lines[0].replace(/^\d+[.)]\s*/, '').trim();
 
-    // Extraer opciones
-    for (let i = 1; i <= 4; i++) {
-      const line = lines[i] || '';
-      const optionMatch = line.match(/^([A-D])[)\-.]\s*(.+)/i);
-      if (optionMatch) {
-        questionData.options.push({
-          letter: optionMatch[1].toUpperCase(),
-          text: optionMatch[2].trim()
-        });
-      }
+    // Extraer opciones con diferentes formatos (A), A., A-, etc.)
+    const options = lines.slice(1, 5).map(line => {
+      const match = line.match(/^([A-D])[)\-.]?\s*(.+)/i);
+      return match ? { letter: match[1].toUpperCase(), text: match[2].trim() } : null;
+    }).filter(opt => opt);
+
+    // Extraer respuesta correcta (busca en todo el bloque)
+    const correctAnswerLine = lines.find(line => line.match(/correcta:\s*([A-D])/i));
+    const correctAnswer = correctAnswerLine?.match(/correcta:\s*([A-D])/i)?.[1]?.toUpperCase();
+
+    if (questionText && options.length === 4 && correctAnswer) {
+      parsedQuestions.push({
+        text: questionText,
+        options,
+        correctAnswer,
+        type: "multiple-choice"
+      });
     }
+  });
 
-    // Extraer respuesta correcta
-    const answerLine = lines.find(line => line.toLowerCase().includes('respuesta correcta') || line.toLowerCase().includes('correcta'));
-    const answerMatch = answerLine?.match(/[A-D]/i);
-    questionData.correctAnswer = answerMatch ? answerMatch[0].toUpperCase() : '';
-
-    if (questionData.text && questionData.options.length === 4 && questionData.correctAnswer) {
-      parsedQuestions.push(questionData);
-    }
-  }
   return parsedQuestions;
 };
 
@@ -154,7 +149,7 @@ export const getTest = async (req, res) => {
     const test = await Test.findById(req.params.id)
       .populate({
         path: 'questions',
-        select: 'text options type -_id' // Excluye respuestas e ID de preguntas
+        select: 'text options type' // Excluye respuestas e ID de preguntas
       })
       .lean();
 

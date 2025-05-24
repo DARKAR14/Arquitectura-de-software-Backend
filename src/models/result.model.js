@@ -1,37 +1,42 @@
 import mongoose from "mongoose";
 
 const resultSchema = new mongoose.Schema({
-  user: { // Cambiar de userId a user para consistencia
+  user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
-    required: true,
+    required: true
   },
-  test: { // Cambiar de testId a test
+  test: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Test",
-    required: true,
+    required: true
   },
   answers: [{
     question: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Question",
-      required: true
+      required: true // Mantenemos la referencia válida
     },
     selectedOption: {
       type: String,
-      enum: ["A", "B", "C", "D"]
+      enum: ["A", "B", "C", "D"],
+      required: true // 👈 Añadir required
+    },
+    isCorrect: {
+      type: Boolean,
+      required: true // 👈 Campo faltante
     }
   }],
   score: {
     type: Number,
-    required: true,
+    required: true
   },
-  total: { // Nuevo campo para porcentaje
+  total: {
     type: Number,
     required: true
   }
 }, {
-  timestamps: true,
+  timestamps: true
 });
 
 export default mongoose.model("Result", resultSchema);

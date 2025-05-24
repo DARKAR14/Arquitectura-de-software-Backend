@@ -1,33 +1,86 @@
 const swaggerDocument = {
   openapi: "3.0.0",
   info: {
-    title: "Generador de Preguntas con IA",
+    title: "Generador de Tests Educativos con IA",
     version: "1.0.0",
-    description: "API que permite a usuarios subir un PDF, generar preguntas automáticamente usando IA, responderlas y ver su calificación.",
+    description: "API para generar tests desde PDFs usando IA, responder preguntas y gestionar resultados"
   },
   servers: [
     {
       url: "https://xdzpxn5h-4000.use2.devtunnels.ms/api",
-      description: "Servidor local",
-    },
+      description: "Servidor Local"
+    }
   ],
   components: {
     securitySchemes: {
       bearerAuth: {
         type: "http",
         scheme: "bearer",
-        bearerFormat: "JWT",
-      },
+        bearerFormat: "JWT"
+      }
     },
     schemas: {
+      User: {
+        type: "object",
+        properties: {
+          _id: { type: "string", example: "664f2c1b2e4f926a0d123456" },
+          username: { type: "string", example: "johndoe" },
+          email: { type: "string", example: "john@example.com" }
+        }
+      },
       Test: {
         type: "object",
         properties: {
-          id: { type: "string", example: "664f2c1b2e4f926a0d123456" },
-          topic: { type: "string", example: "Matemáticas" },
-          difficulty: { type: "string", example: "fácil" },
-          createdAt: { type: "string", format: "date-time" },
-          questionCount: { type: "integer", example: 10 }
+          _id: { type: "string", example: "664f2c1b2e4f926a0d123456" },
+          topic: { type: "string", example: "Inteligencia Artificial" },
+          difficulty: { type: "string", example: "medio" },
+          questions: {
+            type: "array",
+            items: { $ref: "#/components/schemas/Question" }
+          },
+          createdAt: { type: "string", format: "date-time" }
+        }
+      },
+      Question: {
+        type: "object",
+        properties: {
+          _id: { type: "string" },
+          text: { type: "string" },
+          options: {
+            type: "array",
+            items: { $ref: "#/components/schemas/Option" }
+          },
+          correctAnswer: { type: "string", enum: ["A", "B", "C", "D"] }
+        }
+      },
+      Option: {
+        type: "object",
+        properties: {
+          letter: { type: "string", example: "A" },
+          text: { type: "string", example: "Respuesta correcta" }
+        }
+      },
+      Result: {
+        type: "object",
+        properties: {
+          _id: { type: "string" },
+          score: { type: "number", example: 4 },
+          total: { type: "number", example: 5 },
+          percentage: { type: "string", example: "80.00%" },
+          test: { $ref: "#/components/schemas/Test" },
+          details: {
+            type: "array",
+            items: { $ref: "#/components/schemas/AnswerDetail" }
+          }
+        }
+      },
+      AnswerDetail: {
+        type: "object",
+        properties: {
+          question: { type: "string", example: "¿Qué es IA?" },
+          correctAnswer: { type: "string", example: "A" },
+          userAnswer: { type: "string", example: "A" },
+          isCorrect: { type: "boolean", example: true }
         }
       }
     }
@@ -37,7 +90,7 @@ const swaggerDocument = {
     "/auth/register": {
       post: {
         tags: ["Auth"],
-        summary: "Registrar un nuevo usuario",
+        summary: "Registrar nuevo usuario",
         requestBody: {
           required: true,
           content: {
@@ -48,34 +101,22 @@ const swaggerDocument = {
                 properties: {
                   username: { type: "string", example: "johndoe" },
                   email: { type: "string", format: "email", example: "john@example.com" },
-                  password: { type: "string", format: "password", example: "P@ssw0rd123" },
-                },
-              },
-            },
-          },
-        },
-        responses: {
-          201: {
-            description: "Usuario registrado exitosamente",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    message: { type: "string", example: "Usuario registrado exitosamente" }
-                  }
+                  password: { type: "string", format: "password", example: "P@ssw0rd123" }
                 }
               }
             }
-          },
-          500: { description: "Error interno en el servidor" },
+          }
         },
-      },
+        responses: {
+          201: { description: "Usuario registrado exitosamente" },
+          500: { description: "Error en el servidor" }
+        }
+      }
     },
     "/auth/login": {
       post: {
         tags: ["Auth"],
-        summary: "Iniciar sesión de usuario",
+        summary: "Iniciar sesión",
         requestBody: {
           required: true,
           content: {
@@ -84,95 +125,36 @@ const swaggerDocument = {
                 type: "object",
                 required: ["email", "password"],
                 properties: {
-                  email: { type: "string", format: "email", example: "john@example.com" },
-                  password: { type: "string", format: "password", example: "P@ssw0rd123" },
-                },
-              },
-            },
-          },
-        },
-        responses: {
-          200: {
-            description: "Inicio de sesión exitoso",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    message: { type: "string", example: "Inicio de sesión exitoso" },
-                    user: {
-                      type: "object",
-                      properties: {
-                        id: { type: "string", example: "60f5a3c2b1e4f926a0d12345" },
-                        username: { type: "string", example: "johndoe" },
-                        email: { type: "string", format: "email", example: "john@example.com" }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          400: { description: "Email no registrado o contraseña incorrecta" },
-          500: { description: "Error interno en el servidor" },
-        },
-      },
-    },
-    "/auth/logout": {
-      get: {
-        tags: ["Auth"],
-        summary: "Cerrar sesión (eliminar cookie JWT)",
-        responses: {
-          200: {
-            description: "Sesión cerrada correctamente",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    message: { type: "string", example: "Sesión cerrada" }
-                  }
+                  email: { type: "string", example: "john@example.com" },
+                  password: { type: "string", example: "P@ssw0rd123" }
                 }
               }
             }
           }
-        }
-      }
-    },
-    "/users/profile": {
-      get: {
-        tags: ["Users"],
-        summary: "Obtener el perfil del usuario autenticado",
-        security: [{ bearerAuth: [] }],
+        },
         responses: {
           200: {
-            description: "Perfil del usuario obtenido exitosamente",
+            description: "Login exitoso",
             content: {
               "application/json": {
                 schema: {
                   type: "object",
                   properties: {
-                    user: {
-                      type: "object",
-                      properties: {
-                        _id: { type: "string" },
-                        username: { type: "string" },
-                        email: { type: "string" }
-                      }
-                    }
+                    token: { type: "string" },
+                    user: { $ref: "#/components/schemas/User" }
                   }
                 }
               }
             }
           },
-          401: { description: "No autorizado (token inválido o no enviado)" }
+          400: { description: "Credenciales inválidas" }
         }
       }
     },
     "/tests": {
       post: {
         tags: ["Tests"],
-        summary: "Crear un test analizando un PDF con IA",
+        summary: "Crear test desde PDF",
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -182,8 +164,8 @@ const swaggerDocument = {
                 type: "object",
                 required: ["file", "difficulty"],
                 properties: {
-                  file: { type: "string", format: "binary", description: "PDF con el contenido a analizar" },
-                  difficulty: { type: "string", description: "Dificultad del test (p.ej. fácil, medio, difícil)", example: "fácil" }
+                  file: { type: "string", format: "binary" },
+                  difficulty: { type: "string", example: "medio" }
                 }
               }
             }
@@ -191,48 +173,27 @@ const swaggerDocument = {
         },
         responses: {
           201: {
-            description: "Test generado exitosamente",
+            description: "Test creado",
             content: {
               "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    success: { type: "boolean", example: true },
-                    test: { $ref: "#/components/schemas/Test" },
-                    pdfMeta: {
-                      type: "object",
-                      properties: {
-                        originalName: { type: "string", example: "documento.pdf" },
-                        size: { type: "number", example: 123456 },
-                        pages: { type: "number", example: 5 }
-                      }
-                    }
-                  }
-                }
+                schema: { $ref: "#/components/schemas/Test" }
               }
             }
-          },
-          400: { description: "PDF no proporcionado o formato inválido" },
-          500: { description: "Error interno generando el test" }
+          }
         }
       },
       get: {
         tags: ["Tests"],
-        summary: "Obtener tests creados por el usuario autenticado",
+        summary: "Obtener tests del usuario",
         security: [{ bearerAuth: [] }],
         responses: {
           200: {
-            description: "Lista de tests del usuario",
+            description: "Lista de tests",
             content: {
               "application/json": {
                 schema: {
-                  type: "object",
-                  properties: {
-                    tests: {
-                      type: "array",
-                      items: { $ref: "#/components/schemas/Test" }
-                    }
-                  }
+                  type: "array",
+                  items: { $ref: "#/components/schemas/Test" }
                 }
               }
             }
@@ -243,96 +204,74 @@ const swaggerDocument = {
     "/tests/{id}": {
       get: {
         tags: ["Tests"],
-        summary: "Obtener un test por ID",
+        summary: "Obtener test por ID",
         security: [{ bearerAuth: [] }],
-        parameters: [
-          {
-            name: "id",
-            in: "path",
-            required: true,
-            schema: { type: "string" },
-            description: "ID del test"
+        parameters: [{
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string" }
+        }],
+        responses: {
+          200: {
+            description: "Detalle del test",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Test" }
+              }
+            }
           }
-        ],
-        responses: {
-          200: {
-            description: "Test encontrado",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    test: { $ref: "#/components/schemas/Test" }
-                  }
-                }
-              }
-            }
-          },
-          404: { description: "Test no encontrado" }
-        }
-      }
-    },
-    "/questions": {
-      get: {
-        tags: ["Questions"],
-        summary: "Obtener todas las preguntas disponibles",
-        security: [{ bearerAuth: [] }],
-        responses: {
-          200: {
-            description: "Lista de preguntas obtenida exitosamente",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      _id: { type: "string" },
-                      text: { type: "string" },
-                      type: { type: "string" },
-                      options: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          properties: {
-                            text: { type: "string" },
-                            isCorrect: { type: "boolean" }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          401: { description: "Token inválido o no enviado" }
         }
       }
     },
     "/results": {
+      get: {
+        tags: ["Results"],
+        summary: "Obtener historial de resultados",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: "Historial de resultados",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "array",
+                  items: { $ref: "#/components/schemas/Result" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/results/{testId}/submit": {
       post: {
         tags: ["Results"],
-        summary: "Guardar el resultado de un test",
+        summary: "Enviar respuestas de test",
         security: [{ bearerAuth: [] }],
+        parameters: [{
+          name: "testId",
+          in: "path",
+          required: true,
+          schema: { type: "string" }
+        }],
         requestBody: {
           required: true,
           content: {
             "application/json": {
               schema: {
                 type: "object",
-                required: ["testId", "score", "answers"],
                 properties: {
-                  testId: { type: "string", description: "ID del test realizado" },
-                  score: { type: "number", description: "Puntaje obtenido" },
                   answers: {
                     type: "array",
-                    description: "Respuestas del usuario",
                     items: {
                       type: "object",
                       properties: {
                         questionId: { type: "string" },
-                        selectedOption: { type: "string" }
+                        selectedOption: { 
+                          type: "string", 
+                          enum: ["A", "B", "C", "D"] 
+                        }
                       }
                     }
                   }
@@ -342,9 +281,37 @@ const swaggerDocument = {
           }
         },
         responses: {
-          201: { description: "Resultado guardado exitosamente" },
-          400: { description: "Datos inválidos" },
-          401: { description: "No autorizado" }
+          201: {
+            description: "Resultados calculados",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Result" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/results/{id}": {
+      get: {
+        tags: ["Results"],
+        summary: "Obtener detalle de resultado",
+        security: [{ bearerAuth: [] }],
+        parameters: [{
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string" }
+        }],
+        responses: {
+          200: {
+            description: "Detalle del resultado",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Result" }
+              }
+            }
+          }
         }
       }
     }
